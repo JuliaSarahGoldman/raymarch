@@ -1,0 +1,194 @@
+#version 410 // -*- c++ -*-
+#include <g3dmath.glsl>
+#include <Texture/Texture.glsl>
+
+// Input arguments from the C++ program
+uniform mat4x3         cameraToWorldMatrix;
+
+uniform TextureCube    environmentMap;
+
+uniform float          tanHalfFieldOfViewY;
+uniform float          projectionMatrix22, projectionMatrix23;
+
+// Output to the App::m_framebuffer
+out Color3 pixelColor;
+
+struct Material{
+    Color3 lambertian;
+};
+
+struct Surfel{
+    Material material;
+    Point3 position;
+    Vector3 normal;
+};
+
+struct ISphere{
+    Point3 center;
+    float radius;
+    Material material;
+};
+
+struct IBox{
+    Point3 center;
+    float radius;
+    Material material;
+};
+
+struct ITorus{
+    Point3 center;
+    float minorRadius;
+    float majorRadius;
+    Material material;
+};
+
+
+
+float sceneDistance(ITorus torus, Point3 X, inout Material material) {
+    material = torus.material;
+    return length(vec2(length(X.xz - torus.center.xz) - torus.minorRadius, X.y - torus.center.y)) - torus.majorRadius;
+}
+      
+float sceneDistance(ISphere sphere, Point3 X, inout Material material){
+    material = sphere.material;
+    return length(X - sphere.center) - sphere.radius;
+}
+
+float sceneDistance(IBox box, Point3 X, inout Material material){
+    material = box.material;
+    Vector3 d = abs(X - box.center) - box.radius;
+    return min(maxComponent(d), 0) + length(max(d, Vector3(0, 0, 0)));
+}
+
+float sceneDistance(Point3 X, inout Material material) {
+    //const Point3  C = Point3(0,0,0);
+    //const float   r = 1.0;
+    ISphere sphere1 = ISphere(Point3(0,0,0), 1.0, Material(Color3(1,0,1)));
+    IBox box2 = IBox(Point3(1.3,.5,.5), .5, Material(Color3(.3,0,1)));
+    ITorus torus = ITorus(Point3(-2, 2, -2), .5, 1.0, Material(Color3(0,.7,1)));
+
+    // Replace this with a union of the objects in the scene.  You
+    // don't necessarily need an explicit list of separate surfaces in
+    // the way that the analytic tracer does.
+    //
+    // Think about how to change the API so that the closest surface
+    // in a union sets the material. For that, some For intersection,
+    // blending, and subtraction, whichever surface dominates the
+    // distance computation should set the material.
+    Material tmp1, tmp2, tmp3;
+    float t1,t2, t3;
+    t1 = sceneDistance(sphere1, X, tmp1);
+    t2 = sceneDistance(box2, X, tmp2);
+    t3 = sceneDistance(torus, X, tmp3);
+    if (t1 < t2 && t1 < t3){
+        material = tmp1;
+        return t1;
+    }
+    if(t2 < t1 && t2 < t3){
+        material = tmp2;
+        return t2;
+    }
+    else{
+        material = tmp3;
+        return t3;
+    }
+
+    //return length(X - C) - r;
+
+    //return sceneDistance(sphere1, X, material);
+}
+
+float sceneDistance(Point3 X){
+    Material ignore;
+    return sceneDistance(X, ignore);
+}
+
+
+bool traceRayAnalytic(Point3 P, Vector3 w, inout Surfel surfel) {
+    float maxDistance   = 1e10;
+    float t = -P.y/w.y;
+    if (t < maxDistance && w.y < 0.0 && t > 0.0){
+//    if (t > 0.0){
+//    if (t < maxDistance && t > 0.0){
+       surfel.material.lambertian = Color3(1,1,1);
+       surfel.normal = Vector3(0,1,0);
+       surfel.position = P + w*t;
+       maxDistance = t;
+       return true;
+    }
+    else{
+        return false;
+    }
+}
+
+bool traceRayMarch(Point3 P, Vector3 w, inout Surfel surfel){
+    const float maxDistance   = 1e10;
+    const int   maxIterations = 100;
+    const float closeEnough   = 1e-2;
+    float t = 0;
+    Material material;
+    for (int i = 0; i < maxIterations; ++i) {
+        float dt = sceneDistance(P + w * t, material);
+        t += dt;
+        if (dt < closeEnough) {
+            surfel.position = P + w*t;
+            float eps = .00001;
+            Point3 Q = P + w*(t-eps);
+            surfel.normal = normalize(Vector3(sceneDistance(Q+Vector3(eps, 0, 0)), sceneDistance(Q+Vector3(0, eps, 0)), sceneDistance(Q+Vector3(0, 0, eps)))-sceneDistance(Q, surfel.material));//Vector3(0,1,0);
+            //surfel.material = material;
+            return true;
+        }
+    }
+    return false;
+//    return sampleTexture(environmentMap, w).rgb;
+}
+
+bool traceRay(Point3 P, Vector3 w, inout Surfel surfel){
+    bool hit = traceRayAnalytic(P, w, surfel);
+    hit = traceRayMarch(P, w, surfel) || hit;
+    return hit;
+}
+
+
+void main() {
+
+    // Generate an eye ray in camera space, and then transform to world space
+
+    // Primary ray origin    
+    Point3 P  = cameraToWorldMatrix[3];
+
+    // Primary ray direction
+    Vector3 w = Matrix3(cameraToWorldMatrix) * 
+        normalize(Vector3((gl_FragCoord.xy - g3d_FragCoordExtent / 2.0) * Vector2(1, -1),
+                          g3d_FragCoordExtent.y / ( -2.0 * tanHalfFieldOfViewY)));
+
+    float maxDist = inf;       
+
+    //////////////////////////////////////
+
+    // Render the scene here
+   
+    Surfel surfel;
+    if (traceRay(P, w, surfel)){
+       
+       // pixelColor = surfel.material.lambertian;
+        Vector3 wi = normalize(Vector3(1,1,1));
+        Vector3 n = surfel.normal;
+        Radiance3 lightRadiance = Radiance3(2.8, 2.3,1);
+        Radiance3 ambientRadiance = Radiance3(.5, .3, .3);
+        Surfel ignore;
+        bool shadow = traceRay(surfel.position + n*.1, wi, ignore);
+        pixelColor = surfel.material.lambertian/pi*lightRadiance*max(0,dot(n, wi))*float(!shadow)+ambientRadiance;
+    } else{
+        pixelColor = sampleTexture(environmentMap, w).rgb;
+    }
+
+    //////////////////////////////////////
+     
+    // Camera space z value
+    float csZ = maxDist / w.z;
+    
+    // Pack into standard OpenGL depth buffer format to make the result compatible
+    // with rasterization and post-processing.
+    gl_FragDepth = (maxDist == inf) ? 1.0 : ((projectionMatrix22 * csZ + projectionMatrix23) / -csZ);
+}
