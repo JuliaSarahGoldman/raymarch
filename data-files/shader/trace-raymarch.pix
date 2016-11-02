@@ -65,7 +65,7 @@ float sceneDistance(Point3 X, inout Material material) {
     //const float   r = 1.0;
     ISphere sphere1 = ISphere(Point3(0,0,0), 1.0, Material(Color3(1,0,1)));
     IBox box2 = IBox(Point3(1.3,.5,.5), .5, Material(Color3(.3,0,1)));
-    ITorus torus = ITorus(Point3(-2, 2, -2), .5, 1.0, Material(Color3(0,.7,1)));
+    ITorus torus = ITorus(Point3(-2, 2, -2), 1.0, .5, Material(Color3(0,.7,1)));
 
     // Replace this with a union of the objects in the scene.  You
     // don't necessarily need an explicit list of separate surfaces in
