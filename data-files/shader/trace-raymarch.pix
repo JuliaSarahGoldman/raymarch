@@ -1,6 +1,9 @@
 #version 410 // -*- c++ -*-
 #include <g3dmath.glsl>
 #include <Texture/Texture.glsl>
+      
+//#define subtractSurface(h, i, j, X, m) max(-h(i, X, m), h(j, X, m))
+      
 
 // Input arguments from the C++ program
 uniform mat4x3         cameraToWorldMatrix;
@@ -15,6 +18,8 @@ out Color3 pixelColor;
 
 struct Material{
     Color3 lambertian;
+    Color3 glossy;
+    float sigma;
 };
 
 struct Surfel{
@@ -42,30 +47,60 @@ struct ITorus{
     Material material;
 };
 
+struct ICylinder{
+    Point3 center;
+    float radius;
+    float halfHeight;
+    Material material;
+};
+
+const ISphere sphere1 = ISphere(Point3(0,1,0), 1.0, Material(Color3(.85,.02,.25), Color3(.3,.3,.3), 30));
+const IBox box2 = IBox(Point3(0,1.5,.0), .5, Material(Color3(.7,0,.9), Color3(0,0,0), 0));
+const ISphere sphere2 = ISphere(Point3(-1.3,2,2), .5, Material(Color3(0,0,0), Color3(0,.5,.8), 2));
+const ITorus torus = ITorus(Point3(-2, 3, -2), 1.0, .5, Material(Color3(0,.7,1), Color3(0,0,0), 0));
+const ICylinder cylinder = ICylinder(Point3(2, 1.5, 2), .5, 1.0, Material(Color3(0,.7,1), Color3(0,1,0), 10));
 
 
-float sceneDistance(ITorus torus, Point3 X, inout Material material) {
+
+
+
+
+
+float sceneDistance(const ICylinder cylinder, Point3 X, inout Material material){
+    material =cylinder.material;
+    Vector2 d = abs(Vector2(length(X.xz - cylinder.center.xz), X.y - cylinder.center.y)) - Vector2(cylinder.radius, cylinder.halfHeight);
+    return min(maxComponent(d), 0) + length(max(d, Vector2(0, 0)));
+}
+      
+
+float sceneDistance(const ITorus torus, Point3 X, inout Material material) {
     material = torus.material;
     return length(vec2(length(X.xz - torus.center.xz) - torus.minorRadius, X.y - torus.center.y)) - torus.majorRadius;
 }
       
-float sceneDistance(ISphere sphere, Point3 X, inout Material material){
+float sceneDistance(const ISphere sphere, Point3 X, inout Material material){
     material = sphere.material;
     return length(X - sphere.center) - sphere.radius;
 }
 
-float sceneDistance(IBox box, Point3 X, inout Material material){
+float sceneDistance(const IBox box, Point3 X, inout Material material){
     material = box.material;
     Vector3 d = abs(X - box.center) - box.radius;
     return min(maxComponent(d), 0) + length(max(d, Vector3(0, 0, 0)));
 }
 
+//Fix/replace Currently uses second material
+float sceneDistance(const ISphere sphere, const IBox box, Point3 X, inout Material material) {
+    return max(-sceneDistance(box, X, material), 
+                         sceneDistance(sphere, X, material));
+}
+
 float sceneDistance(Point3 X, inout Material material) {
     //const Point3  C = Point3(0,0,0);
     //const float   r = 1.0;
-    ISphere sphere1 = ISphere(Point3(0,0,0), 1.0, Material(Color3(1,0,1)));
+   /* ISphere sphere1 = ISphere(Point3(0,0,0), 1.0, Material(Color3(1,0,1)));
     IBox box2 = IBox(Point3(1.3,.5,.5), .5, Material(Color3(.3,0,1)));
-    ITorus torus = ITorus(Point3(-2, 2, -2), 1.0, .5, Material(Color3(0,.7,1)));
+    ITorus torus = ITorus(Point3(-2, 2, -2), 1.0, .5, Material(Color3(0,.7,1)));*/
 
     // Replace this with a union of the objects in the scene.  You
     // don't necessarily need an explicit list of separate surfaces in
@@ -75,22 +110,30 @@ float sceneDistance(Point3 X, inout Material material) {
     // in a union sets the material. For that, some For intersection,
     // blending, and subtraction, whichever surface dominates the
     // distance computation should set the material.
-    Material tmp1, tmp2, tmp3;
-    float t1,t2, t3;
-    t1 = sceneDistance(sphere1, X, tmp1);
-    t2 = sceneDistance(box2, X, tmp2);
+    Material tmp1, tmp2, tmp3, tmp5;
+    float t1,t2, t3, t4, t5;
+    t2 = inf;
+    t1 = sceneDistance(sphere1, box2, X, tmp1);
+    //t2 = subtractSurface(sceneDistance, box2, sphere1, X, tmp1);
+    //t2 = sceneDistance(box2, X, tmp2);
     t3 = sceneDistance(torus, X, tmp3);
-    if (t1 < t2 && t1 < t3){
+    t4 = sceneDistance(cylinder, X, tmp3);
+    t5 = sceneDistance(sphere2, X, tmp5);
+    if (t1 < t2 && t1 < min(t3, t4) && t1 < t5){
         material = tmp1;
         return t1;
     }
-    if(t2 < t1 && t2 < t3){
+    else if(t2 < t1 && t2 < min(t3,t4) && t2 < t5){
         material = tmp2;
         return t2;
     }
+    else if(t5 < t1 && t5 < min(t3,t4) && t5 < t2){
+        material = tmp5;
+        return t5;
+    }
     else{
         material = tmp3;
-        return t3;
+        return min(t3, t4);
     }
 
     //return length(X - C) - r;
@@ -104,10 +147,9 @@ float sceneDistance(Point3 X){
 }
 
 
-bool traceRayAnalytic(Point3 P, Vector3 w, inout Surfel surfel) {
-    float maxDistance   = 1e10;
+bool traceRayAnalytic(Point3 P, Vector3 w, inout Surfel surfel, in out float maxDistance) {
     float t = -P.y/w.y;
-    if (t < maxDistance && w.y < 0.0 && t > 0.0){
+    if ((t < maxDistance) && (sign(w.y*P.y) < 0.0)){
 //    if (t > 0.0){
 //    if (t < maxDistance && t > 0.0){
        surfel.material.lambertian = Color3(1,1,1);
@@ -121,18 +163,19 @@ bool traceRayAnalytic(Point3 P, Vector3 w, inout Surfel surfel) {
     }
 }
 
-bool traceRayMarch(Point3 P, Vector3 w, inout Surfel surfel){
-    const float maxDistance   = 1e10;
+bool traceRayMarch(Point3 P, Vector3 w, inout Surfel surfel, inout float maxDistance){
+    //const float maxDistance   = 1e10;
     const int   maxIterations = 100;
     const float closeEnough   = 1e-2;
     float t = 0;
     Material material;
-    for (int i = 0; i < maxIterations; ++i) {
+    for (int i = 0; ((i < maxIterations) && (t < maxDistance)); ++i) {
         float dt = sceneDistance(P + w * t, material);
         t += dt;
         if (dt < closeEnough) {
+            maxDistance = t;
             surfel.position = P + w*t;
-            float eps = .00001;
+            float eps = 1e-4;
             Point3 Q = P + w*(t-eps);
             surfel.normal = normalize(Vector3(sceneDistance(Q+Vector3(eps, 0, 0)), sceneDistance(Q+Vector3(0, eps, 0)), sceneDistance(Q+Vector3(0, 0, eps)))-sceneDistance(Q, surfel.material));//Vector3(0,1,0);
             //surfel.material = material;
@@ -143,9 +186,9 @@ bool traceRayMarch(Point3 P, Vector3 w, inout Surfel surfel){
 //    return sampleTexture(environmentMap, w).rgb;
 }
 
-bool traceRay(Point3 P, Vector3 w, inout Surfel surfel){
-    bool hit = traceRayAnalytic(P, w, surfel);
-    hit = traceRayMarch(P, w, surfel) || hit;
+bool traceRay(Point3 P, Vector3 w, inout Surfel surfel, inout float maxDistance){
+    bool hit = traceRayAnalytic(P, w, surfel, maxDistance);
+    hit = traceRayMarch(P, w, surfel, maxDistance) || hit;
     return hit;
 }
 
@@ -169,16 +212,20 @@ void main() {
     // Render the scene here
    
     Surfel surfel;
-    if (traceRay(P, w, surfel)){
+    if (traceRay(P, w, surfel, maxDist)){
        
        // pixelColor = surfel.material.lambertian;
         Vector3 wi = normalize(Vector3(1,1,1));
         Vector3 n = surfel.normal;
-        Radiance3 lightRadiance = Radiance3(2.8, 2.3,1);
-        Radiance3 ambientRadiance = Radiance3(.5, .3, .3);
+        Radiance3 biradiance = Radiance3(2.8, 2.3,1);
+        Radiance3 ambientRadiance = Radiance3(.5, .3, .3)*surfel.material.lambertian;
         Surfel ignore;
-        bool shadow = traceRay(surfel.position + n*.1, wi, ignore);
-        pixelColor = surfel.material.lambertian/pi*lightRadiance*max(0,dot(n, wi))*float(!shadow)+ambientRadiance;
+        float shadowDist = inf;
+        bool shadow = traceRay(surfel.position + n*.1, wi, ignore, shadowDist);
+        Vector3 wo = -w;
+        Vector3 wh = normalize(wi+wo);
+        Color3 f = (surfel.material.lambertian/pi)+ (pow(max(dot(n,wh),0), max(surfel.material.sigma,1))*(surfel.material.sigma+8)*surfel.material.glossy)/(8*pi);
+        pixelColor = f*biradiance*max(0,dot(n, wi))*float(!shadow)+ambientRadiance;
     } else{
         pixelColor = sampleTexture(environmentMap, w).rgb;
     }
