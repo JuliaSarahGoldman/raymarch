@@ -2,7 +2,10 @@
 #include <g3dmath.glsl>
 #include <Texture/Texture.glsl>
       
-//#define subtractSurface(h, i, j, X, m) max(-h(i, X, m), h(j, X, m))
+#define subtractSurface(h, i, j, X, m) max(-h(i, X, m), h(j, X, m))
+#define test(f, s, X, m) smin(f(s, X, m), 100, .5)
+#define repeat(h, period, s, X, m) h(s, mod(X, period), m)
+
       
 
 // Input arguments from the C++ program
@@ -56,13 +59,19 @@ struct ICylinder{
 
 const ISphere sphere1 = ISphere(Point3(0,1,0), 1.0, Material(Color3(.85,.02,.25), Color3(.3,.3,.3), 30));
 const IBox box2 = IBox(Point3(0,1.5,.0), .5, Material(Color3(.7,0,.9), Color3(0,0,0), 0));
-const ISphere sphere2 = ISphere(Point3(-1.3,2,2), .5, Material(Color3(0,0,0), Color3(0,.5,.8), 2));
+//const ISphere sphere2 = ISphere(Point3(-1.3,2,2), .5, Material(Color3(0,0,0), Color3(0,.5,.8), 2));
+const ISphere sphere2 = ISphere(Point3(-1.3,2,2), .5, Material(Color3(.9,.5,0), Color3(0,0,0), 0));
+const ISphere sphere3 = ISphere(Point3(-1.3,2,2.4), .5, Material(Color3(.9,.5,0), Color3(0,0,0), 0));
 const ITorus torus = ITorus(Point3(-2, 3, -2), 1.0, .5, Material(Color3(0,.7,1), Color3(0,0,0), 0));
+const ITorus torus2 = ITorus(Point3(-1.7, 3, -2), 1.0, .5, Material(Color3(0,.7,1), Color3(0,0,0), 0));
 const ICylinder cylinder = ICylinder(Point3(2, 1.5, 2), .5, 1.0, Material(Color3(0,.7,1), Color3(0,1,0), 10));
 
 
 
-
+float smin(float a, float b, float blendRadius) {
+    float c = saturate(0.5 + (b - a) * (0.5 / blendRadius));
+    return lerp(b, a, c) - blendRadius * c * (1.0 - c);
+}
 
 
 
@@ -110,30 +119,43 @@ float sceneDistance(Point3 X, inout Material material) {
     // in a union sets the material. For that, some For intersection,
     // blending, and subtraction, whichever surface dominates the
     // distance computation should set the material.
-    Material tmp1, tmp2, tmp3, tmp5;
+    Material tmp1, tmp2, tmp3, tmp4, tmp5;
     float t1,t2, t3, t4, t5;
     t2 = inf;
-    t1 = sceneDistance(sphere1, box2, X, tmp1);
-    //t2 = subtractSurface(sceneDistance, box2, sphere1, X, tmp1);
-    //t2 = sceneDistance(box2, X, tmp2);
-    t3 = sceneDistance(torus, X, tmp3);
-    t4 = sceneDistance(cylinder, X, tmp3);
+    //t1 = sceneDistance(sphere1, box2, X, tmp1);
+    t1 = subtractSurface(sceneDistance, box2, sphere1, X, tmp1);
+    t2 = sceneDistance(sphere3, X, tmp5);
+    //t3 = sceneDistance(torus, X, tmp3);
+    t3 = subtractSurface(sceneDistance, torus2, torus, X, tmp3);
+    t4 = repeat(sceneDistance, 10, cylinder, X, tmp4);// sceneDistance(cylinder, X, tmp4);
     t5 = sceneDistance(sphere2, X, tmp5);
-    if (t1 < t2 && t1 < min(t3, t4) && t1 < t5){
+    if (t1 < t3 && t1 < min(t2, t5) && t1 < t4){
         material = tmp1;
+        //float color = mod(X.x*X.y*X.z,.1);
+        /*float sum = mod(X.x + X.y + X.z, 2);
+        if (sum > 1){
+            sum = 1;
+        }
+        else{
+            sum = 0;
+        }*/
+        material.lambertian = normalize((mod(X, .1)));
+        //material.lambertian = Color3(sum);
         return t1;
     }
-    else if(t2 < t1 && t2 < min(t3,t4) && t2 < t5){
-        material = tmp2;
-        return t2;
+    else if(t3 < t1 && t3 < min(t2,t5) && t3 < t4){
+        material = tmp3;
+        material.lambertian *= normalize(mod(X, .5));
+        return t3;
     }
-    else if(t5 < t1 && t5 < min(t3,t4) && t5 < t2){
-        material = tmp5;
-        return t5;
+    else if(t4 < t1 && t4 < min(t2,t5) && t4 < t3){
+        material = tmp4;
+        return t4;
     }
     else{
-        material = tmp3;
-        return min(t3, t4);
+        material = tmp5;
+        material.lambertian *= normalize(mod(X, 1));
+        return smin(t2, t5, .05);
     }
 
     //return length(X - C) - r;
