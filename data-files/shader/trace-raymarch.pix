@@ -65,6 +65,7 @@ const ISphere sphere3 = ISphere(Point3(-1.3,2,2.4), .5, Material(Color3(.9,.5,0)
 const ITorus torus = ITorus(Point3(-2, 3, -2), 1.0, .5, Material(Color3(0,.7,1), Color3(0,0,0), 0));
 const ITorus torus2 = ITorus(Point3(-1.7, 3, -2), 1.0, .5, Material(Color3(0,.7,1), Color3(0,0,0), 0));
 const ICylinder cylinder = ICylinder(Point3(2, 1.5, 2), .5, 1.0, Material(Color3(0,.7,1), Color3(0,1,0), 10));
+const ICylinder cylinder2 = ICylinder(Point3(2, 1.8, 2), .45, 1.3, Material(Color3(0,.7,1), Color3(0,1,0), 10));
 
 
 
@@ -127,7 +128,7 @@ float sceneDistance(Point3 X, inout Material material) {
     t2 = sceneDistance(sphere3, X, tmp5);
     //t3 = sceneDistance(torus, X, tmp3);
     t3 = subtractSurface(sceneDistance, torus2, torus, X, tmp3);
-    t4 = repeat(sceneDistance, 10, cylinder, X, tmp4);// sceneDistance(cylinder, X, tmp4);
+    t4 = subtractSurface(sceneDistance, cylinder2, cylinder, X, tmp4);// sceneDistance(cylinder, X, tmp4);
     t5 = sceneDistance(sphere2, X, tmp5);
     if (t1 < t3 && t1 < min(t2, t5) && t1 < t4){
         material = tmp1;
@@ -139,8 +140,18 @@ float sceneDistance(Point3 X, inout Material material) {
         else{
             sum = 0;
         }*/
+
+        /*float sum = 1;
+        float width = .2;
+        float x = mod(X.x, 2*width);
+        float y = mod(X.y, 2*width);
+        float z = mod(X.z, 2*width);
+        if ((x < width && y < width) || (x > width && y > width)){
+            sum = 0;
+        }
+        material.lambertian = Color3(sum);
+        */
         material.lambertian = normalize((mod(X, .1)));
-        //material.lambertian = Color3(sum);
         return t1;
     }
     else if(t3 < t1 && t3 < min(t2,t5) && t3 < t4){
@@ -150,6 +161,14 @@ float sceneDistance(Point3 X, inout Material material) {
     }
     else if(t4 < t1 && t4 < min(t2,t5) && t4 < t3){
         material = tmp4;
+        material.lambertian = Color3(.9, 0, .3);
+        float width = .05;
+        float x = mod(X.x, 2*width);
+        float y = mod(X.y, 2*width);
+        float z = mod(X.z, 2*width);
+        if ((y < width)){// && y < width) || (x > width && y > width)){
+            material.lambertian = Color3(.9, 1, 1);
+        }
         return t4;
     }
     else{
@@ -232,6 +251,17 @@ void main() {
     //////////////////////////////////////
 
     // Render the scene here
+
+    //Code for checkerboard
+    /*
+    float width = 10;
+    float x = mod(gl_FragCoord.x, 2*width);
+    float y = mod(gl_FragCoord.y, 2*width);
+    if ((x < width && y < width) || (x > width && y > width)){
+        pixelColor = Color3(0, 0, 0);
+    } else{
+        pixelColor = Color3(1,1,1);
+    }*/
    
     Surfel surfel;
     if (traceRay(P, w, surfel, maxDist)){
