@@ -164,6 +164,7 @@
     <None Include="data-files\shader\trace-minimal.pix" />
     <None Include="data-files\shader\trace-raymarch.pix" />
     <None Include="data-files\shader\trace-venice.pix" />
+    <None Include="doc-files\report.md.html" />
     <None Include="journal\journal.md.html" />
   </ItemGroup>
   <ItemGroup>

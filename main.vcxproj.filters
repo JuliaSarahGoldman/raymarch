@@ -20,6 +20,7 @@
     <None Include="data-files\shader\trace-venice.pix">
       <Filter>Shader Files</Filter>
     </None>
+    <None Include="doc-files\report.md.html" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source Files">

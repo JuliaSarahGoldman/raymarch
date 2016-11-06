@@ -66,7 +66,7 @@ const ITorus torus = ITorus(Point3(-2, 3, -2), 1.0, .5, Material(Color3(0,.7,1),
 const ITorus torus2 = ITorus(Point3(-1.7, 3, -2), 1.0, .5, Material(Color3(0,.7,1), Color3(0,0,0), 0));
 const ICylinder cylinder = ICylinder(Point3(2, 1.5, 2), .5, 1.0, Material(Color3(0,.7,1), Color3(0,1,0), 10));
 const ICylinder cylinder2 = ICylinder(Point3(2, 1.8, 2), .45, 1.3, Material(Color3(0,.7,1), Color3(0,1,0), 10));
-
+const ISphere testSphere = ISphere(Point3(.5,.5,0.0), 0.5, Material(Color3(.85,.02,.25), Color3(0,0,0), 0));
 
 
 float smin(float a, float b, float blendRadius) {
@@ -120,6 +120,9 @@ float sceneDistance(Point3 X, inout Material material) {
     // in a union sets the material. For that, some For intersection,
     // blending, and subtraction, whichever surface dominates the
     // distance computation should set the material.
+
+    return sceneDistance(testSphere, X, material);
+
     Material tmp1, tmp2, tmp3, tmp4, tmp5;
     float t1,t2, t3, t4, t5;
     t2 = inf;
@@ -250,11 +253,13 @@ void main() {
 
     //////////////////////////////////////
 
+    //pixelColor = (w + 1)/2;
+
     // Render the scene here
 
     //Code for checkerboard
     /*
-    float width = 10;
+    float width = 16;
     float x = mod(gl_FragCoord.x, 2*width);
     float y = mod(gl_FragCoord.y, 2*width);
     if ((x < width && y < width) || (x > width && y > width)){
@@ -278,6 +283,9 @@ void main() {
         Vector3 wh = normalize(wi+wo);
         Color3 f = (surfel.material.lambertian/pi)+ (pow(max(dot(n,wh),0), max(surfel.material.sigma,1))*(surfel.material.sigma+8)*surfel.material.glossy)/(8*pi);
         pixelColor = f*biradiance*max(0,dot(n, wi))*float(!shadow)+ambientRadiance;
+
+        //pixelColor = P;
+        //pixelColor = (n+1)/2;
     } else{
         pixelColor = sampleTexture(environmentMap, w).rgb;
     }
