@@ -4,7 +4,11 @@
       
 #define subtractSurface(h, i, j, X, m) max(-h(i, X, m), h(j, X, m))
 #define test(f, s, X, m) smin(f(s, X, m), 100, .5)
-#define repeat(h, period, s, X, m) h(s, mod(X, period), m)
+//http://iquilezles.org/www/articles/distfunctions/distfunctions.htm
+#define repeat(h, period, s, X, m) h(s, mod(X, period) - .5 * period, m)
+#define surfaceUnion(h, s, j, X, m) smin(h(s, X, m), h(j, X, m), .05)
+#define intersectSurface(h, s, j, X, m) max(h(s, X, m), h(j, X, m))
+      
 
       
 
@@ -19,11 +23,20 @@ uniform float          projectionMatrix22, projectionMatrix23;
 // Output to the App::m_framebuffer
 out Color3 pixelColor;
 
+
+
+
 struct Material{
     Color3 lambertian;
     Color3 glossy;
     float sigma;
 };
+
+//struct for avoiding too many ifs
+/*struct Object{
+    Material material;
+    float dist;
+};*/
 
 struct Surfel{
     Material material;
@@ -57,6 +70,17 @@ struct ICylinder{
     Material material;
 };
 
+struct Wing{
+    ISphere wSphere;
+    ISphere cutSphere;
+    IBox cutBox;
+};
+
+struct Bug{
+    Wing wing1;
+    Wing wing2;
+};
+
 const ISphere sphere1 = ISphere(Point3(0,1,0), 1.0, Material(Color3(.85,.02,.25), Color3(.3,.3,.3), 30));
 const IBox box2 = IBox(Point3(0,1.5,.0), .5, Material(Color3(.7,0,.9), Color3(0,0,0), 0));
 //const ISphere sphere2 = ISphere(Point3(-1.3,2,2), .5, Material(Color3(0,0,0), Color3(0,.5,.8), 2));
@@ -67,12 +91,22 @@ const ITorus torus2 = ITorus(Point3(-1.7, 3, -2), 1.0, .5, Material(Color3(0,.7,
 const ICylinder cylinder = ICylinder(Point3(2, 1.5, 2), .5, 1.0, Material(Color3(0,.7,1), Color3(0,1,0), 10));
 const ICylinder cylinder2 = ICylinder(Point3(2, 1.8, 2), .45, 1.3, Material(Color3(0,.7,1), Color3(0,1,0), 10));
 const ISphere testSphere = ISphere(Point3(.5,.5,0.0), 0.5, Material(Color3(.85,.02,.25), Color3(0,0,0), 0));
-
+const Wing wing1 = Wing( ISphere(Point3(4,2,4), .5, Material(Color3(0,0,0), Color3(0,.5,.8), 2)), ISphere(Point3(4,1.9,4), .5, Material(Color3(.9,.5,0), Color3(1,0,1), 3)), IBox(Point3(3.5,2,4), .5, Material(Color3(.7,0,.9), Color3(0,0,0), 0)));
+const Wing wing2 = Wing( ISphere(Point3(4.8,2,4), .5, Material(Color3(0,0,0), Color3(0,.5,.8), 2)), ISphere(Point3(4.8,1.9,4), .5, Material(Color3(.9,.5,0), Color3(1,0,1), 3)), IBox(Point3(5.3,2,4), .5, Material(Color3(.7,0,.9), Color3(0,0,0), 0)));
+const Bug bug1 = Bug(wing1, wing2);
 
 float smin(float a, float b, float blendRadius) {
     float c = saturate(0.5 + (b - a) * (0.5 / blendRadius));
     return lerp(b, a, c) - blendRadius * c * (1.0 - c);
 }
+
+//http://www.johndcook.com/blog/2010/01/13/soft-maximum/
+float smax(float x, float y) {
+    float maximum = max(x, y);
+	float minimum = min(x, y);
+	return maximum + log( 1.0 + exp(minimum - maximum) );
+}
+
 
 
 
@@ -101,8 +135,18 @@ float sceneDistance(const IBox box, Point3 X, inout Material material){
 
 //Fix/replace Currently uses second material
 float sceneDistance(const ISphere sphere, const IBox box, Point3 X, inout Material material) {
-    return max(-sceneDistance(box, X, material), 
-                         sceneDistance(sphere, X, material));
+    return max(-sceneDistance(box, X, material), sceneDistance(sphere, X, material));
+}
+
+float sceneDistance(const Wing wing, Point3 X, inout Material material){
+    float a = subtractSurface(sceneDistance, wing.cutBox, wing.wSphere, X, material);
+    float b =subtractSurface(sceneDistance, wing.cutSphere, wing.wSphere, X, material);
+    return max(a, b);
+}
+
+
+float sceneDistance(const Bug bug, Point3 X, inout Material material){
+    return surfaceUnion(sceneDistance, bug.wing1, bug.wing2, X, material);;
 }
 
 float sceneDistance(Point3 X, inout Material material) {
@@ -121,8 +165,43 @@ float sceneDistance(Point3 X, inout Material material) {
     // blending, and subtraction, whichever surface dominates the
     // distance computation should set the material.
 
-    return sceneDistance(testSphere, X, material);
+    //return sceneDistance(testSphere, X, material);
+    Material tmp1, tmp2, tmp3, tmp4, tmp5;
+    float t1, t2, t3, t4, t5;
+    //Object o1, o2, o3, o4, o5;
+    t1 = surfaceUnion(sceneDistance, box2, sphere1, X, tmp1);
+    tmp1.lambertian = normalize((mod(X, .1)));
+    t2 = intersectSurface(sceneDistance, sphere2, sphere3, X, tmp2);
+    tmp2.lambertian *= normalize(mod(X, 1));
+    t3 = subtractSurface(sceneDistance, torus2, torus, X, tmp3);
+    tmp3.lambertian *= normalize(mod(X, .5));
+    t4 = subtractSurface(sceneDistance, cylinder2, cylinder, X, tmp4);
+    tmp4.lambertian = (mod(X.y, .1) < .05) ? Color3(.9, 1, 1) : Color3(.9, 0, .3);
+    t5 = sceneDistance(bug1, X, tmp5);
 
+    if (t1 < t2 && t1 < t3 && t1 < t4 && t1 < t5){
+        material = tmp1;
+        return t1;
+    }
+    else if (t2 < t1 && t2 < t3 && t2 < t4 && t2 < t5){
+        material = tmp2;
+        return t2;
+    }
+    else if (t3 < t2 && t3 < t1 && t3 < t4 && t3 < t5){
+        material = tmp3;
+        return t3;
+    }
+    else if (t4 < t2 && t4 < t3 && t4 < t1 && t4 < t5){
+        material = tmp4;
+        return t4;
+    }
+    else if (t5 < t2 && t5 < t3 && t5 < t1 && t5 < t4){
+        material = tmp5;
+        return t5;
+    }
+
+
+    /*
     Material tmp1, tmp2, tmp3, tmp4, tmp5;
     float t1,t2, t3, t4, t5;
     t2 = inf;
@@ -153,7 +232,7 @@ float sceneDistance(Point3 X, inout Material material) {
             sum = 0;
         }
         material.lambertian = Color3(sum);
-        */
+        *//*
         material.lambertian = normalize((mod(X, .1)));
         return t1;
     }
@@ -178,7 +257,7 @@ float sceneDistance(Point3 X, inout Material material) {
         material = tmp5;
         material.lambertian *= normalize(mod(X, 1));
         return smin(t2, t5, .05);
-    }
+    }*/
 
     //return length(X - C) - r;
 
