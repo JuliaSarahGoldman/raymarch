@@ -1,13 +1,17 @@
 #version 410 // -*- c++ -*-
 #include <g3dmath.glsl>
 #include <Texture/Texture.glsl>
+#include <noise.glsl>
       
 #define subtractSurface(h, i, j, X, m) max(-h(i, X, m), h(j, X, m))
 #define test(f, s, X, m) smin(f(s, X, m), 100, .5)
 //http://iquilezles.org/www/articles/distfunctions/distfunctions.htm
 #define repeat(h, period, s, X, m) h(s, mod(X, period) - .5 * period, m)
-#define surfaceUnion(h, s, j, X, m) smin(h(s, X, m), h(j, X, m), .05)
+#define surfaceUnion(h, s, j, X, m, r) smin(h(s, X, m), h(j, X, m), r)
 #define intersectSurface(h, s, j, X, m) max(h(s, X, m), h(j, X, m))
+#define transformSurface(h, M, X)\
+  h((inverse(M) * vec4(X, 1.0)).xyz) * determinant(M)
+    
       
 
       
@@ -81,19 +85,51 @@ struct Bug{
     Wing wing2;
 };
 
-const ISphere sphere1 = ISphere(Point3(0,1,0), 1.0, Material(Color3(.85,.02,.25), Color3(.3,.3,.3), 30));
-const IBox box2 = IBox(Point3(0,1.5,.0), .5, Material(Color3(.7,0,.9), Color3(0,0,0), 0));
+struct Shell{
+    ITorus ring1;
+    ITorus cut1;
+    ITorus ring2;
+    ITorus cut2;
+    ITorus ring3;
+    ITorus cut3;
+};
+
+struct Pendant{
+    ITorus ring;
+    ISphere rCut;
+    ICylinder moon;
+    ICylinder mCut;
+};
+
+struct Pear{
+    ISphere bottom;
+    ISphere top;
+    ICylinder stem;
+};
+
+
+
+const ISphere sphere1 = ISphere(Point3(0,6.8,0), 1.0, Material(Color3(.3,.5,0), Color3(.3,.3,.3), 30));
+const IBox box2 = IBox(Point3(0,6,.0), .5, Material(Color3(.7,0,.9), Color3(0,0,0), 0));
+const ISphere egg2 = ISphere(Point3(0,7.8,.0), .5, Material(Color3(.3,.5,0), Color3(.3,.3,.3), 30));
 //const ISphere sphere2 = ISphere(Point3(-1.3,2,2), .5, Material(Color3(0,0,0), Color3(0,.5,.8), 2));
-const ISphere sphere2 = ISphere(Point3(-1.3,2,2), .5, Material(Color3(.9,.5,0), Color3(0,0,0), 0));
-const ISphere sphere3 = ISphere(Point3(-1.3,2,2.4), .5, Material(Color3(.9,.5,0), Color3(0,0,0), 0));
-const ITorus torus = ITorus(Point3(-2, 3, -2), 1.0, .5, Material(Color3(0,.7,1), Color3(0,0,0), 0));
-const ITorus torus2 = ITorus(Point3(-1.7, 3, -2), 1.0, .5, Material(Color3(0,.7,1), Color3(0,0,0), 0));
-const ICylinder cylinder = ICylinder(Point3(2, 1.5, 2), .5, 1.0, Material(Color3(0,.7,1), Color3(0,1,0), 10));
-const ICylinder cylinder2 = ICylinder(Point3(2, 1.8, 2), .45, 1.3, Material(Color3(0,.7,1), Color3(0,1,0), 10));
+const ISphere sphere2 = ISphere(Point3(-1.3,6,2), .5, Material(Color3(.9,.5,0), Color3(0,0,0), 0));
+const ISphere sphere3 = ISphere(Point3(-1.3,6,2.4), .5, Material(Color3(.9,.5,0), Color3(0,0,0), 0));
+const ITorus torus = ITorus(Point3(-2, 6.5, -2), 1.0, .5, Material(Color3(0,.5,.7), Color3(0,.7,.5), 3));
+const ITorus torus2 = ITorus(Point3(-1.7, 6.5, -2), 1.0, .5, Material(Color3(0,.7,1), Color3(0,0,0), 0));
+const ICylinder cylinder = ICylinder(Point3(2, 5.5, 2), .5, 1.0, Material(Color3(0,.7,1), Color3(0,1,0), 10));
+const ICylinder cylinder2 = ICylinder(Point3(2, 5.8, 2), .45, 1.3, Material(Color3(0,.7,1), Color3(0,1,0), 10));
 const ISphere testSphere = ISphere(Point3(.5,.5,0.0), 0.5, Material(Color3(.85,.02,.25), Color3(0,0,0), 0));
-const Wing wing1 = Wing( ISphere(Point3(4,2,4), .5, Material(Color3(0,0,0), Color3(0,.5,.8), 2)), ISphere(Point3(4,1.9,4), .5, Material(Color3(.9,.5,0), Color3(1,0,1), 3)), IBox(Point3(3.5,2,4), .5, Material(Color3(.7,0,.9), Color3(0,0,0), 0)));
-const Wing wing2 = Wing( ISphere(Point3(4.8,2,4), .5, Material(Color3(0,0,0), Color3(0,.5,.8), 2)), ISphere(Point3(4.8,1.9,4), .5, Material(Color3(.9,.5,0), Color3(1,0,1), 3)), IBox(Point3(5.3,2,4), .5, Material(Color3(.7,0,.9), Color3(0,0,0), 0)));
+const Wing wing1 = Wing( ISphere(Point3(4,6,4), .5, Material(Color3(0,0,0), Color3(0,.5,.8), 2)), ISphere(Point3(4,5.9,4), .5, Material(Color3(.9,.5,0), Color3(1,0,1), 3)), IBox(Point3(3.5,6,4), .5, Material(Color3(.7,0,.9), Color3(0,0,0), 0)));
+const Wing wing2 = Wing( ISphere(Point3(4.8,6,4), .5, Material(Color3(0,0,0), Color3(0,.5,.8), 2)), ISphere(Point3(4.8,5.9,4), .5, Material(Color3(.9,.5,0), Color3(1,0,1), 3)), IBox(Point3(5.3,6,4), .5, Material(Color3(.7,0,.9), Color3(0,0,0), 0)));
 const Bug bug1 = Bug(wing1, wing2);
+const Shell shell1 = Shell(torus, torus2, ITorus(Point3(-2, 7.2, -2), .75, .3, Material(Color3(0,.5,.7), Color3(0,.7,.5), 3)), ITorus(Point3(-1.7, 7.2, -2), .75, .3, Material(Color3(0,.7,1), Color3(0,0,0), 0)), ITorus(Point3(-2, 7.65, -2), .5, .2, Material(Color3(0,.5,.7), Color3(0,.7,.5), 3)), ITorus(Point3(-1.7, 7.65, -2), .5, .2, Material(Color3(0,.7,1), Color3(0,0,0), 0)));
+const ICylinder moon = ICylinder(Point3(-5, 6, -3.9), .3, .1, Material(Color3(0,.1,.6), Color3(0,1,0), 10));
+const ICylinder cutMoon = ICylinder(Point3(-4.75, 6, -3.9), .3, .4, Material(Color3(0,.1,.6), Color3(0,1,0), 10));
+const Pendant pendant = Pendant(ITorus(Point3(-5, 6, -5), 1.0, .1, Material(Color3(0,0,0), Color3(1,1,1), 2)), ISphere(Point3(-5, 6, -5.75), 0.5, Material(Color3(0,.7,1), Color3(0,0,0), 0)), moon, cutMoon);
+const Pear pear = Pear(sphere1, egg2, ICylinder(Point3(0, 8.45, 0), .02, .2, Material(Color3(.2,.2,0), Color3(0,0,0), 0)));
+const IBox table = IBox(Point3(-1.6,0,-1.5), 5.85, Material(Color3(.2,.2,0), Color3(0,0,0), 0));
+
 
 float smin(float a, float b, float blendRadius) {
     float c = saturate(0.5 + (b - a) * (0.5 / blendRadius));
@@ -140,13 +176,41 @@ float sceneDistance(const ISphere sphere, const IBox box, Point3 X, inout Materi
 
 float sceneDistance(const Wing wing, Point3 X, inout Material material){
     float a = subtractSurface(sceneDistance, wing.cutBox, wing.wSphere, X, material);
-    float b =subtractSurface(sceneDistance, wing.cutSphere, wing.wSphere, X, material);
+    float b = subtractSurface(sceneDistance, wing.cutSphere, wing.wSphere, X, material);
     return max(a, b);
+}
+
+float sceneDistance(const Shell shell, Point3 X, inout Material material){
+    float a = subtractSurface(sceneDistance, shell.cut1, shell.ring1, X, material);
+    float b = subtractSurface(sceneDistance, shell.cut2, shell.ring2, X, material);
+    float c = subtractSurface(sceneDistance, shell.cut3, shell.ring3, X, material);
+    
+    return smin(a, smin(b, c, .05), .05);
+}
+
+float sceneDistance(const Pendant pendant, Point3 X, inout Material material){
+    Material tmp;
+    float a = subtractSurface(sceneDistance, pendant.rCut, pendant.ring, X, tmp);
+    float b = subtractSurface(sceneDistance, pendant.mCut, pendant.moon, X, material);
+    if (a < b){
+        material = tmp;
+    }
+    return min(a, b);
+}
+
+float sceneDistance(const Pear pear, Point3 X, inout Material material){
+    Material tmp;
+    float a = surfaceUnion(sceneDistance, pear.bottom, pear.top, X, tmp, .5);
+    float b = sceneDistance(pear.stem, X, material);
+    if (a < b){
+        material = tmp;
+    }
+    return smin(a, b, .05);
 }
 
 
 float sceneDistance(const Bug bug, Point3 X, inout Material material){
-    return surfaceUnion(sceneDistance, bug.wing1, bug.wing2, X, material);;
+    return surfaceUnion(sceneDistance, bug.wing1, bug.wing2, X, material, .05);;
 }
 
 float sceneDistance(Point3 X, inout Material material) {
@@ -165,19 +229,24 @@ float sceneDistance(Point3 X, inout Material material) {
     // blending, and subtraction, whichever surface dominates the
     // distance computation should set the material.
 
-    //return sceneDistance(testSphere, X, material);
+    //return repeat(sceneDistance, 10, testSphere, X, material);
     Material tmp1, tmp2, tmp3, tmp4, tmp5;
     float t1, t2, t3, t4, t5;
     //Object o1, o2, o3, o4, o5;
-    t1 = surfaceUnion(sceneDistance, box2, sphere1, X, tmp1);
-    tmp1.lambertian = normalize((mod(X, .1)));
-    t2 = intersectSurface(sceneDistance, sphere2, sphere3, X, tmp2);
-    tmp2.lambertian *= normalize(mod(X, 1));
-    t3 = subtractSurface(sceneDistance, torus2, torus, X, tmp3);
-    tmp3.lambertian *= normalize(mod(X, .5));
-    t4 = subtractSurface(sceneDistance, cylinder2, cylinder, X, tmp4);
-    tmp4.lambertian = (mod(X.y, .1) < .05) ? Color3(.9, 1, 1) : Color3(.9, 0, .3);
-    t5 = sceneDistance(bug1, X, tmp5);
+    t1 = sceneDistance(pear, X, tmp1);
+    //tmp1.lambertian = normalize((mod(X, .1)));
+    t2 = inf;
+    //t2 = intersectSurface(sceneDistance, sphere2, sphere3, X, tmp2);
+    //tmp2.lambertian *= normalize(mod(X, 1));
+    //t3 = subtractSurface(sceneDistance, torus2, torus, X, tmp3);
+    t3 = sceneDistance(shell1, X, tmp3);
+    //tmp3.lambertian *= normalize(mod(X, .5));
+    //tmp3.lambertian = Color3(0, 0, 0);
+    tmp3.lambertian *= normalize(mod(X,.05));
+    t4 = sceneDistance(table, X, tmp5);
+    //t4 = subtractSurface(sceneDistance, cylinder2, cylinder, X, tmp4);
+    tmp4.lambertian = ((mod(X.z, .2) < .1 && mod(X.x, .2) < .1)) || (mod(X.z, .2) > .1 && mod(X.x, .2) > .1) ? Color3(.9, 1, 1) : Color3(.9, 0, .3);
+    t5 = sceneDistance(pendant, X, tmp5);
 
     if (t1 < t2 && t1 < t3 && t1 < t4 && t1 < t5){
         material = tmp1;
@@ -346,6 +415,9 @@ void main() {
     } else{
         pixelColor = Color3(1,1,1);
     }*/
+
+    //Code for noise
+    //pixelColor = lerp(Color3(0, .2, .8), Color3(1, 1, 1), clamp(noise(gl_FragCoord.xy/60, 3), 0, 1));
    
     Surfel surfel;
     if (traceRay(P, w, surfel, maxDist)){
@@ -366,7 +438,7 @@ void main() {
         //pixelColor = P;
         //pixelColor = (n+1)/2;
     } else{
-        pixelColor = sampleTexture(environmentMap, w).rgb;
+       pixelColor = sampleTexture(environmentMap, w).rgb;
     }
 
     //////////////////////////////////////
