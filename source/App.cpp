@@ -89,7 +89,7 @@ void App::onGraphics3D(RenderDevice* rd, Array<shared_ptr<Surface> >& allSurface
         // on the GPU.
         LAUNCH_SHADER(
             //"trace-minimal.pix"
-            //"trace-analytic.pix"
+            //"data-files/shader/trace-analytic.pix"
             "data-files/shader/trace-raymarch.pix"
             //"../data-files/shader/trace-venice.pix"
             , args);

@@ -5,7 +5,17 @@
 
 Construction
 ======================================================
+    My scene was a still life, with a necklace, a sea shell, and a pear on a table. The table cube, with a checkerboard pattern created using the x and z coordinates of the table's position. ![Check pattern in Progress](table.jpg width = 200px) 
 
+
+    The sea shell is made of stacked toruses. Each torus has another torus that is shifted over slightly subtracted from it. Then the layers are smoothly unioned together using a smooth min.Like the checkers, its pattern is also based on modding its position, which creates the small gradient boxes. 
+    ![One layer of the shell.](shell1.jpg width = 200px) ![Attempt at texture.](shell2.jpg width = 200px) ![Smoothed Together](shell3.jpg width = 200px) 
+    ![Pear in Progress](pear1.jpg width = 200px) 
+    The pear is created from two spheres, which are smoothly unioned together with a high blend radius. It's stem is a cylinder, which is then unioned with the pear with a lower blend radius. 
+
+
+    The necklace is made of a torus with a sphere subtracted from it, creating its opening. Its moon pendant is made from subtracting one cylinder from another that it overlaps. 
+    ![With pendant](pendant3.jpg width = 200px)![Cut Torus](pendant1.jpg width = 200px)
 
 
 Correctness Results
@@ -28,12 +38,12 @@ Correctness Results
     Analytic Intersection
     -------------------------------------------------
     
-    ![World-space hit positions visualized as colors by c =Pt](analytic1.jpg width=200px) ![World-space surface normals visualized as colors by c =(n^+1)/2](analytic2.jpg width=200px)
+    ![World-space hit positions visualized as colors by c =P](analytic1.jpg width=200px) ![World-space surface normals visualized as colors by c =(n^+1)/2](analytic2.jpg width=200px)
 
     Ray-Marched Intersection
     -------------------------------------------------
     
-    ![World-space hit positions visualized as colors by c =Pt](ray1.jpg width=200px) ![World-space surface normals visualized as colors by c =(n^+1)/2](ray2.jpg width=200px)
+    ![World-space hit positions visualized as colors by c =P](ray1.jpg width=200px) ![World-space surface normals visualized as colors by c =(n^+1)/2](ray2.jpg width=200px)
 
     Ray marched sphere with direct illumination
     -------------------------------------------------
@@ -48,13 +58,14 @@ Correctness Results
 
 Demonstration
 ========================================================
-
-![Sponza. Rendered at 1280x720.](Sponza.png)
-![Sponza. Rendered at 1280x720.](Sponza.png)
-![Sponza. Rendered at 1280x720.](Sponza.png)
-![Sponza. Rendered at 1280x720.](Sponza.png)
-![Sponza. Rendered at 1280x720.](Sponza.png)
-
+    ![Still Life with Shell, Pear, and Pendant](still1.jpg)
+    ![Still Life with Shell, Pear, and Pendant](still.jpg)
+    ![Still Life with Shell, Pear, and Pendant](Still2.jpg)
+    ![Pear](pear.jpg)
+    ![Shell](shell.jpg)
+    ![Pendant](pendant.jpg)
+    ![Pendant](pendant2.jpg)
+    ![Pear and Shell](pear_shell.jpg)
 
 
 Questions
@@ -62,24 +73,54 @@ Questions
  1.    Choose one of the Shadertoy shaders that you liked. Show a screenshot, give attribution, and make a link to the live version on the web. Explain:
 A single-sentence explaining why it appealed to you.
 The core technique involved (in three or fewer sentences). If it uses ray marching, don't explain ray marching—just explain what the primitives and operations employed are. Some of the shaders have nothing to do with ray marching, and that's fine.
+    !(cubicJulia1.png width=400px)
+    I looked at Inigo Quile's [Cubic Julia shader toy](https://www.shadertoy.com/view/lsl3W2). It apealed to me due to the name, and because its fun to watch it melt and shift. It is a ray marched fractal that changes over time. T have these changes occur, it uses a hash function that takes in a value based off time to construct the current version of the fractal. Normals are calculated based on positiona and epsilon in much the same way we calculated them. The ray marching uses an intersect function much like our own, which executes at most 150 times, and determines implicitly whether the ray would hit the fractal. Then, it shades the resulting material (which is simply a vector3, rather than a specific surfel struct), using diffuse lighting generated using a for loop, and specular lighting to make it shiny.
+    
 
 2. What online resources did you use to learn about GLSL (besides the Graphics Codex)?
+    [Book of Shaders](https://thebookofshaders.com/)
+    http://iquilezles.org/www/articles/distfunctions/distfunctions.htm
+    http://www.johndcook.com/blog/2010/01/13/soft-maximum/
 
 3. Give a list of five important semantic or syntactic differences between C/C++ and GLSL that you encountered
-    1. Const means something else....
-    2. Pass by value unless you specify otherwise...
-    3. No pointers
-    4. 
+    1. There are no pointers in GLSL.
+    2. In GLSL, in order to pass by reference, one needs to designate a parameter as inout. Otherwise, it is passed by value.
+    3. One cannot have recursion in GLSL.
+    4. No ability to use printf.
+    5. No debugger.
+    6. Ints are slow, so one ought to use floats instead.
+    7. To be const, one's value must be able to be determined at compile time.
+   
 
 
 
 Self Review
 ========================================================
+B/B+
+Code design/readability
+* I tried to organize my code, but it can be a little chaotic in places, since I never found a good way of checking all the objects in a given scene.
+Expected code correctness
+* The code I use seems to be correct, as it does what I expect it to do, although there are some macros and helper functions I wrote but did not use which may not be perfect.
+Scene visual quality
+* My scene has some cool elements, but could have been more interesting, since it is a collection of relatively simple objects.
+Expected report correctness
+* I hope it is acccurate, although my undertsanding of the shadertoy I looked at is not as complete as I would like it to be.
 
 
 Skills
 ========================================================
-
+Software Engineering
+* Using GLSL
+* Taking notes is helpful
+* Experimenting with a technique is fun, but one should remember to stay on schedule
+* Implement one step at a time and then test, rath r than attempting multiple stages at once.
+Algorithmic
+* The Sphere Tracing Algorithm
+* Analytic Plains
+* Unions, Intersections, and Subtractions of Shapes
+Mathematical
+* Manhattan Distance
+* Creating patterns based on position data
 
 
 

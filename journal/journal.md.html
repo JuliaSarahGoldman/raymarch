@@ -1,6 +1,12 @@
 ﻿                  <meta charset="utf-8">
                  **Development Journal**
 
+2016-11-07: Commented Out Code:
+=============================================================
+tmp1.lambertian = normalize((mod(X, .1))); Creates pattern based off position
+t2 = intersectSurface(sceneDistance, sphere2, sphere3, X, tmp2); Creates pellet shape, which looks like a circle from the front and back and an almond from the side.
+tmp2.lambertian *= normalize(mod(X, 1)); or tmp3.lambertian *= normalize(mod(X, .5)); Pattern taking into account original lambertian
+t4 = subtractSurface(sceneDistance, cylinder2, cylinder, X, tmp4); Creates a cup.
 
 2016-11-07: Scene
 =============================================================

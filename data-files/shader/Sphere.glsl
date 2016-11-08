@@ -18,7 +18,7 @@ bool intersect(Sphere sphere, Point3 P, Vector3 w, inout float distance, inout S
      float   r = sphere.radius;
      
      Vector3 v = P - C;
-     float b = 2.0 * dot(w, v);
+     float b = 2.0f * dot(w, v);
      float c = dot(v, v) - square(r);
      float d = square(b) - 4.0 * c;
      if (d < 0.0) { return false; }

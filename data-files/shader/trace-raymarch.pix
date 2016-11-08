@@ -4,7 +4,7 @@
 #include <noise.glsl>
       
 #define subtractSurface(h, i, j, X, m) max(-h(i, X, m), h(j, X, m))
-#define test(f, s, X, m) smin(f(s, X, m), 100, .5)
+#define test(f, s, X, m) f(s, X, m)
 //http://iquilezles.org/www/articles/distfunctions/distfunctions.htm
 #define repeat(h, period, s, X, m) h(s, mod(X, period) - .5 * period, m)
 #define surfaceUnion(h, s, j, X, m, r) smin(h(s, X, m), h(j, X, m), r)
@@ -35,12 +35,6 @@ struct Material{
     Color3 glossy;
     float sigma;
 };
-
-//struct for avoiding too many ifs
-/*struct Object{
-    Material material;
-    float dist;
-};*/
 
 struct Surfel{
     Material material;
@@ -112,14 +106,19 @@ struct Pear{
 const ISphere sphere1 = ISphere(Point3(0,6.8,0), 1.0, Material(Color3(.3,.5,0), Color3(.3,.3,.3), 30));
 const IBox box2 = IBox(Point3(0,6,.0), .5, Material(Color3(.7,0,.9), Color3(0,0,0), 0));
 const ISphere egg2 = ISphere(Point3(0,7.8,.0), .5, Material(Color3(.3,.5,0), Color3(.3,.3,.3), 30));
-//const ISphere sphere2 = ISphere(Point3(-1.3,2,2), .5, Material(Color3(0,0,0), Color3(0,.5,.8), 2));
 const ISphere sphere2 = ISphere(Point3(-1.3,6,2), .5, Material(Color3(.9,.5,0), Color3(0,0,0), 0));
 const ISphere sphere3 = ISphere(Point3(-1.3,6,2.4), .5, Material(Color3(.9,.5,0), Color3(0,0,0), 0));
 const ITorus torus = ITorus(Point3(-2, 6.5, -2), 1.0, .5, Material(Color3(0,.5,.7), Color3(0,.7,.5), 3));
 const ITorus torus2 = ITorus(Point3(-1.7, 6.5, -2), 1.0, .5, Material(Color3(0,.7,1), Color3(0,0,0), 0));
 const ICylinder cylinder = ICylinder(Point3(2, 5.5, 2), .5, 1.0, Material(Color3(0,.7,1), Color3(0,1,0), 10));
 const ICylinder cylinder2 = ICylinder(Point3(2, 5.8, 2), .45, 1.3, Material(Color3(0,.7,1), Color3(0,1,0), 10));
+
 const ISphere testSphere = ISphere(Point3(.5,.5,0.0), 0.5, Material(Color3(.85,.02,.25), Color3(0,0,0), 0));
+const IBox testBox = IBox(Point3(.5,.5,0.0), 0.5, Material(Color3(.85,.02,.25), Color3(0,0,0), 0));
+const ITorus testTorus = ITorus(Point3(.5,.5,0.0), 1.0, 0.5, Material(Color3(.85,.02,.25), Color3(0,0,0), 0));
+const ICylinder testCylinder = ICylinder(Point3(.5,.5,0.0), 0.5, 1, Material(Color3(.85,.02,.25), Color3(0,0,0), 0));
+
+
 const Wing wing1 = Wing( ISphere(Point3(4,6,4), .5, Material(Color3(0,0,0), Color3(0,.5,.8), 2)), ISphere(Point3(4,5.9,4), .5, Material(Color3(.9,.5,0), Color3(1,0,1), 3)), IBox(Point3(3.5,6,4), .5, Material(Color3(.7,0,.9), Color3(0,0,0), 0)));
 const Wing wing2 = Wing( ISphere(Point3(4.8,6,4), .5, Material(Color3(0,0,0), Color3(0,.5,.8), 2)), ISphere(Point3(4.8,5.9,4), .5, Material(Color3(.9,.5,0), Color3(1,0,1), 3)), IBox(Point3(5.3,6,4), .5, Material(Color3(.7,0,.9), Color3(0,0,0), 0)));
 const Bug bug1 = Bug(wing1, wing2);
@@ -136,14 +135,13 @@ float smin(float a, float b, float blendRadius) {
     return lerp(b, a, c) - blendRadius * c * (1.0 - c);
 }
 
+//Attempt. Ultimately Unused.
 //http://www.johndcook.com/blog/2010/01/13/soft-maximum/
 float smax(float x, float y) {
     float maximum = max(x, y);
 	float minimum = min(x, y);
 	return maximum + log( 1.0 + exp(minimum - maximum) );
 }
-
-
 
 
 float sceneDistance(const ICylinder cylinder, Point3 X, inout Material material){
@@ -167,11 +165,6 @@ float sceneDistance(const IBox box, Point3 X, inout Material material){
     material = box.material;
     Vector3 d = abs(X - box.center) - box.radius;
     return min(maxComponent(d), 0) + length(max(d, Vector3(0, 0, 0)));
-}
-
-//Fix/replace Currently uses second material
-float sceneDistance(const ISphere sphere, const IBox box, Point3 X, inout Material material) {
-    return max(-sceneDistance(box, X, material), sceneDistance(sphere, X, material));
 }
 
 float sceneDistance(const Wing wing, Point3 X, inout Material material){
@@ -208,17 +201,11 @@ float sceneDistance(const Pear pear, Point3 X, inout Material material){
     return smin(a, b, .05);
 }
 
-
 float sceneDistance(const Bug bug, Point3 X, inout Material material){
     return surfaceUnion(sceneDistance, bug.wing1, bug.wing2, X, material, .05);;
 }
 
 float sceneDistance(Point3 X, inout Material material) {
-    //const Point3  C = Point3(0,0,0);
-    //const float   r = 1.0;
-   /* ISphere sphere1 = ISphere(Point3(0,0,0), 1.0, Material(Color3(1,0,1)));
-    IBox box2 = IBox(Point3(1.3,.5,.5), .5, Material(Color3(.3,0,1)));
-    ITorus torus = ITorus(Point3(-2, 2, -2), 1.0, .5, Material(Color3(0,.7,1)));*/
 
     // Replace this with a union of the objects in the scene.  You
     // don't necessarily need an explicit list of separate surfaces in
@@ -229,22 +216,14 @@ float sceneDistance(Point3 X, inout Material material) {
     // blending, and subtraction, whichever surface dominates the
     // distance computation should set the material.
 
-    //return repeat(sceneDistance, 10, testSphere, X, material);
+    //return test(sceneDistance, testCylinder, X, material);
     Material tmp1, tmp2, tmp3, tmp4, tmp5;
     float t1, t2, t3, t4, t5;
-    //Object o1, o2, o3, o4, o5;
     t1 = sceneDistance(pear, X, tmp1);
-    //tmp1.lambertian = normalize((mod(X, .1)));
     t2 = inf;
-    //t2 = intersectSurface(sceneDistance, sphere2, sphere3, X, tmp2);
-    //tmp2.lambertian *= normalize(mod(X, 1));
-    //t3 = subtractSurface(sceneDistance, torus2, torus, X, tmp3);
     t3 = sceneDistance(shell1, X, tmp3);
-    //tmp3.lambertian *= normalize(mod(X, .5));
-    //tmp3.lambertian = Color3(0, 0, 0);
     tmp3.lambertian *= normalize(mod(X,.05));
     t4 = sceneDistance(table, X, tmp5);
-    //t4 = subtractSurface(sceneDistance, cylinder2, cylinder, X, tmp4);
     tmp4.lambertian = ((mod(X.z, .2) < .1 && mod(X.x, .2) < .1)) || (mod(X.z, .2) > .1 && mod(X.x, .2) > .1) ? Color3(.9, 1, 1) : Color3(.9, 0, .3);
     t5 = sceneDistance(pendant, X, tmp5);
 
@@ -270,67 +249,6 @@ float sceneDistance(Point3 X, inout Material material) {
     }
 
 
-    /*
-    Material tmp1, tmp2, tmp3, tmp4, tmp5;
-    float t1,t2, t3, t4, t5;
-    t2 = inf;
-    //t1 = sceneDistance(sphere1, box2, X, tmp1);
-    t1 = subtractSurface(sceneDistance, box2, sphere1, X, tmp1);
-    t2 = sceneDistance(sphere3, X, tmp5);
-    //t3 = sceneDistance(torus, X, tmp3);
-    t3 = subtractSurface(sceneDistance, torus2, torus, X, tmp3);
-    t4 = subtractSurface(sceneDistance, cylinder2, cylinder, X, tmp4);// sceneDistance(cylinder, X, tmp4);
-    t5 = sceneDistance(sphere2, X, tmp5);
-    if (t1 < t3 && t1 < min(t2, t5) && t1 < t4){
-        material = tmp1;
-        //float color = mod(X.x*X.y*X.z,.1);
-        /*float sum = mod(X.x + X.y + X.z, 2);
-        if (sum > 1){
-            sum = 1;
-        }
-        else{
-            sum = 0;
-        }*/
-
-        /*float sum = 1;
-        float width = .2;
-        float x = mod(X.x, 2*width);
-        float y = mod(X.y, 2*width);
-        float z = mod(X.z, 2*width);
-        if ((x < width && y < width) || (x > width && y > width)){
-            sum = 0;
-        }
-        material.lambertian = Color3(sum);
-        *//*
-        material.lambertian = normalize((mod(X, .1)));
-        return t1;
-    }
-    else if(t3 < t1 && t3 < min(t2,t5) && t3 < t4){
-        material = tmp3;
-        material.lambertian *= normalize(mod(X, .5));
-        return t3;
-    }
-    else if(t4 < t1 && t4 < min(t2,t5) && t4 < t3){
-        material = tmp4;
-        material.lambertian = Color3(.9, 0, .3);
-        float width = .05;
-        float x = mod(X.x, 2*width);
-        float y = mod(X.y, 2*width);
-        float z = mod(X.z, 2*width);
-        if ((y < width)){// && y < width) || (x > width && y > width)){
-            material.lambertian = Color3(.9, 1, 1);
-        }
-        return t4;
-    }
-    else{
-        material = tmp5;
-        material.lambertian *= normalize(mod(X, 1));
-        return smin(t2, t5, .05);
-    }*/
-
-    //return length(X - C) - r;
-
-    //return sceneDistance(sphere1, X, material);
 }
 
 float sceneDistance(Point3 X){
@@ -338,12 +256,37 @@ float sceneDistance(Point3 X){
     return sceneDistance(X, ignore);
 }
 
+bool intersect(Point3 P, Vector3 w, inout float distance, inout Surfel surfel) {
+     Point3  C = Point3(.5, .5, 0);
+     float   r = .5;
+     
+     Vector3 v = P - C;
+     float b = 2.0 * dot(w, v);
+     float c = dot(v, v) - square(r);
+     float d = square(b) - 4.0 * c;
+     if (d < 0.0) { return false; }
+     
+     float dsqrt = sqrt(d);
+     
+     // Choose the first positive intersection
+     float t = min(infIfNegative((-b - dsqrt) / 2.0),   
+                   infIfNegative((-b + dsqrt) / 2.0));
+
+     if (t < distance) { 
+         surfel.position = P + w * t;
+         surfel.normal   = normalize(surfel.position - C);
+         //surfel.material = sphere.material;
+         
+         distance = t;
+         return true;
+     } else {
+         return false;
+     }
+}
 
 bool traceRayAnalytic(Point3 P, Vector3 w, inout Surfel surfel, in out float maxDistance) {
     float t = -P.y/w.y;
     if ((t < maxDistance) && (sign(w.y*P.y) < 0.0)){
-//    if (t > 0.0){
-//    if (t < maxDistance && t > 0.0){
        surfel.material.lambertian = Color3(1,1,1);
        surfel.normal = Vector3(0,1,0);
        surfel.position = P + w*t;
@@ -356,7 +299,6 @@ bool traceRayAnalytic(Point3 P, Vector3 w, inout Surfel surfel, in out float max
 }
 
 bool traceRayMarch(Point3 P, Vector3 w, inout Surfel surfel, inout float maxDistance){
-    //const float maxDistance   = 1e10;
     const int   maxIterations = 100;
     const float closeEnough   = 1e-2;
     float t = 0;
@@ -369,13 +311,11 @@ bool traceRayMarch(Point3 P, Vector3 w, inout Surfel surfel, inout float maxDist
             surfel.position = P + w*t;
             float eps = 1e-4;
             Point3 Q = P + w*(t-eps);
-            surfel.normal = normalize(Vector3(sceneDistance(Q+Vector3(eps, 0, 0)), sceneDistance(Q+Vector3(0, eps, 0)), sceneDistance(Q+Vector3(0, 0, eps)))-sceneDistance(Q, surfel.material));//Vector3(0,1,0);
-            //surfel.material = material;
+            surfel.normal = normalize(Vector3(sceneDistance(Q+Vector3(eps, 0, 0)), sceneDistance(Q+Vector3(0, eps, 0)), sceneDistance(Q+Vector3(0, 0, eps)))-sceneDistance(Q, surfel.material));
             return true;
         }
     }
     return false;
-//    return sampleTexture(environmentMap, w).rgb;
 }
 
 bool traceRay(Point3 P, Vector3 w, inout Surfel surfel, inout float maxDistance){
@@ -416,13 +356,12 @@ void main() {
         pixelColor = Color3(1,1,1);
     }*/
 
-    //Code for noise
+    //Code for clouds
     //pixelColor = lerp(Color3(0, .2, .8), Color3(1, 1, 1), clamp(noise(gl_FragCoord.xy/60, 3), 0, 1));
    
     Surfel surfel;
     if (traceRay(P, w, surfel, maxDist)){
        
-       // pixelColor = surfel.material.lambertian;
         Vector3 wi = normalize(Vector3(1,1,1));
         Vector3 n = surfel.normal;
         Radiance3 biradiance = Radiance3(2.8, 2.3,1);
@@ -435,10 +374,11 @@ void main() {
         Color3 f = (surfel.material.lambertian/pi)+ (pow(max(dot(n,wh),0), max(surfel.material.sigma,1))*(surfel.material.sigma+8)*surfel.material.glossy)/(8*pi);
         pixelColor = f*biradiance*max(0,dot(n, wi))*float(!shadow)+ambientRadiance;
 
-        //pixelColor = P;
+        //For testing:
+        //pixelColor = surfel.position;
         //pixelColor = (n+1)/2;
     } else{
-       pixelColor = sampleTexture(environmentMap, w).rgb;
+        pixelColor = sampleTexture(environmentMap, w).rgb;
     }
 
     //////////////////////////////////////
