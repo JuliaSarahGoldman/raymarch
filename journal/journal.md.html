@@ -4,8 +4,11 @@
 2016-11-07: Commented Out Code:
 =============================================================
 tmp1.lambertian = normalize((mod(X, .1))); Creates pattern based off position
+
 t2 = intersectSurface(sceneDistance, sphere2, sphere3, X, tmp2); Creates pellet shape, which looks like a circle from the front and back and an almond from the side.
+
 tmp2.lambertian *= normalize(mod(X, 1)); or tmp3.lambertian *= normalize(mod(X, .5)); Pattern taking into account original lambertian
+
 t4 = subtractSurface(sceneDistance, cylinder2, cylinder, X, tmp4); Creates a cup.
 
 2016-11-07: Scene
@@ -113,7 +116,7 @@ t4 = subtractSurface(sceneDistance, cylinder2, cylinder, X, tmp4); Creates a cup
 
 
 
-2016-11-05: ???
+2016-11-05: Current Shapes
 =============================================================
 
 ![](2016-11-05_029_gpu-trace_r2054_g3d_r960__.jpg)
@@ -124,10 +127,11 @@ t4 = subtractSurface(sceneDistance, cylinder2, cylinder, X, tmp4); Creates a cup
 =============================================================
 
 ![](2016-11-05_028_gpu-trace_r2054_g3d_r960__.jpg)
+This works nicely, since it depends just on y.
 
 
 
-2016-11-05: ???
+2016-11-05: More Checks
 =============================================================
 
 ![](2016-11-05_027_gpu-trace_r2054_g3d_r960__.jpg)
@@ -138,13 +142,14 @@ t4 = subtractSurface(sceneDistance, cylinder2, cylinder, X, tmp4); Creates a cup
 =============================================================
 
 ![](2016-11-05_026_gpu-trace_r2054_g3d_r960__.jpg)
-
+...although still cool.
 
 
 2016-11-05: Currently just dependent on x and y...
 =============================================================
 
 ![](2016-11-05_025_gpu-trace_r2054_g3d_r960__.jpg)
+...so looks weird from the side.
 
 
 
@@ -160,7 +165,7 @@ t4 = subtractSurface(sceneDistance, cylinder2, cylinder, X, tmp4); Creates a cup
 
 ![](2016-11-05_023_gpu-trace_r2054_g3d_r960__.jpg)
 
-Some bands of offness?
+Better.
 
 
 
@@ -177,10 +182,11 @@ Not quite.
 =============================================================
 
 ![](2016-11-05_021_gpu-trace_r2054_g3d_r960__.jpg)
+Although repetition is happening...
 
 
 
-2016-11-05: ???
+2016-11-05: Swirls
 =============================================================
 
 ![](2016-11-05_020_gpu-trace_r2054_g3d_r960__.jpg)
@@ -214,13 +220,8 @@ float color = mod(X.x*X.y,.5);
 =============================================================
 
 ![](2016-11-05_017_gpu-trace_r2054_g3d_r960__.jpg)
-
-
-
-2016-11-05: Multiplied by actual lambertian
-=============================================================
-
 ![](2016-11-05_016_gpu-trace_r2054_g3d_r960__.jpg)
+Multiplied position based color by lambertian.
 
 
 
@@ -231,7 +232,7 @@ float color = mod(X.x*X.y,.5);
 
 
 
-2016-11-05: ???
+2016-11-05: Still modding away...
 =============================================================
 
 ![](2016-11-05_014_gpu-trace_r2054_g3d_r960__.jpg)
@@ -266,7 +267,7 @@ float color = mod(X.x*X.y,.5);
 
 
 
-2016-11-05: ???
+2016-11-05: Using Modding Again
 =============================================================
 
 ![](2016-11-05_009_gpu-trace_r2054_g3d_r960__.jpg)
@@ -277,7 +278,7 @@ float color = mod(X.x*X.y,.5);
 =============================================================
 
 ![](2016-11-05_008_gpu-trace_r2054_g3d_r960__.jpg)
-
+Color set based on position.
 
 
 2016-11-05: mod by 4 for brighter colors
@@ -287,7 +288,7 @@ float color = mod(X.x*X.y,.5);
 
 
 
-2016-11-05: Fun
+2016-11-05: Fun with Colors
 =============================================================
 
 ![](2016-11-05_006_gpu-trace_r2054_g3d_r960__.jpg)
@@ -312,20 +313,21 @@ float color = mod(X.x*X.y,.5);
 =============================================================
 
 ![](2016-11-05_003_gpu-trace_r2054_g3d_r960__.jpg)
-
+Better.
 
 
 2016-11-05: Smooth min, radius 2.
 =============================================================
 
 ![](2016-11-05_002_gpu-trace_r2054_g3d_r960__.jpg)
-
+Too much smoothing.
 
 
 2016-11-05: Regular minning
 =============================================================
 
 ![](2016-11-05_001_gpu-trace_r2054_g3d_r960__.jpg)
+Leaves a cleft.
 
 
 
@@ -344,11 +346,11 @@ Subtracting a Torus from a torus
 ![](2016-11-03_011_gpu-trace_r2030_g3d_r960__.jpg)
 
 Special Function that takes the min of the sphere's distance function and the
-negative of the cube's one.
+negative of the cube's one. Should probably have a macro to generalize this.
 
 
 
-2016-11-03: Objects
+2016-11-03: Current Objects
 =============================================================
 
 ![](2016-11-03_010_gpu-trace_r2030_g3d_r960__.jpg)
@@ -362,24 +364,11 @@ negative of the cube's one.
 
 
 
-2016-11-03: Glossy
-=============================================================
-
-![](2016-11-03_008_gpu-trace_r2030_g3d_r960__.jpg)
-
-
-
-2016-11-03: Gloss
-=============================================================
-
-![](2016-11-03_007_gpu-trace_r2030_g3d_r960__.jpg)
-
-
-
 2016-11-03: Shiny
 =============================================================
 
-![](2016-11-03_006_gpu-trace_r2030_g3d_r960__.jpg)
+![](2016-11-03_006_gpu-trace_r2030_g3d_r960__.jpg) ![](2016-11-03_007_gpu-trace_r2030_g3d_r960__.jpg)
+![](2016-11-03_008_gpu-trace_r2030_g3d_r960__.jpg)
 
 
 
@@ -387,7 +376,7 @@ negative of the cube's one.
 =============================================================
 
 ![](2016-11-03_005_gpu-trace_r2030_g3d_r960__.jpg)
-
+Trying to add glossy, but something's off.
 
 
 2016-11-03: Cylinder
@@ -402,7 +391,7 @@ negative of the cube's one.
 
 ![](2016-11-03_003_gpu-trace_r2030_g3d_r960__.jpg)
 
-Problem with sahdows was actually problem with ground plane.
+Problem with sahdows was actually problem with ground plane, sinc ethe shadows were where the ground plane was supposed to be.
 
 
 
@@ -420,7 +409,7 @@ drawn over my analytic shapes.
 =============================================================
 
 ![](2016-11-03_001_gpu-trace_r2030_g3d_r960__.jpg)
-
+They would be right if the ground plane were higher.
 
 
 2016-11-03: Better Shading
@@ -429,7 +418,7 @@ drawn over my analytic shapes.
 ![](2016-11-03_000_gpu-trace_r2030_g3d_r960__.jpg)
 
 Now taking lambertian into account for ambient term.
-
+Old problem came from abient radiance being constant, rather than based on the material.
 
 
 2016-11-02: Actual Torus
@@ -437,7 +426,7 @@ Now taking lambertian into account for ambient term.
 
 ![](2016-11-02_009_gpu-trace_r2027_g3d_r960__.jpg)
 
-Had minor and major radius reversed?
+Had minor and major radius reversed.
 
 
 
@@ -462,7 +451,7 @@ Also, shadows slightly off.
 
 ![](2016-11-02_006_gpu-trace_g3d_r960__.jpg)
 
-(Oh, t2's set twice.) oops...
+(Oh, t2's set twice.) Oops... But cool, as mistakes go. Also, things higher up seem to cast better shadows.
 
 
 
@@ -487,7 +476,7 @@ Also, why isn't ground plain visible from below?
 
 ![](2016-11-02_003_gpu-trace_g3d_r960__.jpg)
 
-Something to do with epsilon, right?
+These circles appearing has something to do with epsilon, right?
 
 
 
@@ -505,38 +494,27 @@ Closer, but no.
 
 ![](2016-11-02_001_gpu-trace_g3d_r960__.jpg)
 
-Analytic raytrace was not setting position or normal previously.
-
+Analytic raytrace was not setting position or normal previously, which accounts for some of the old wierdness.
 
 
 2016-11-02: Attempting shadows.
 =============================================================
 
 ![](2016-11-02_000_gpu-trace_g3d_r960__.jpg)
-
-
-
-2016-11-01: Not quite desirable...
-=============================================================
-
-![](2016-11-01_011_gpu-trace_g3d_r960__.jpg)
-
-Next Step: Shadows.
-
-
+Again, usnure of what is wrong.
 
 2016-11-01: Not liking lighting.
 =============================================================
 
-![](2016-11-01_010_gpu-trace_g3d_r960__.jpg)
-
+![](2016-11-01_010_gpu-trace_g3d_r960__.jpg) ![](2016-11-01_011_gpu-trace_g3d_r960__.jpg)
+Something is wrong with the ambient radiance, although I'm not sure of what.
+Next Step: Shadows.
 
 
 2016-11-01: Pink Ambient Radiance
 =============================================================
 
 ![](2016-11-01_009_gpu-trace_g3d_r960__.jpg)
-
 
 
 2016-11-01: Lowered Ambient Radiance
@@ -550,7 +528,7 @@ Next Step: Shadows.
 =============================================================
 
 ![First Attemt. Very Glowy.](2016-11-01_007_gpu-trace_g3d_r960__First_Attemt._Very_Glowy..jpg)
-
+Arbitrarily chosen radiances.
 
 
 2016-11-01: Ground Plane Stable
@@ -558,7 +536,7 @@ Next Step: Shadows.
 
 ![](2016-11-01_006_gpu-trace_g3d_r960__.jpg)
 
-Temporarily Fixed by checking if t is greater than 0.
+Temporarily Fixed ground plane by checking if t is greater than 0, but this seems hacky.
 
 
 
@@ -566,13 +544,14 @@ Temporarily Fixed by checking if t is greater than 0.
 =============================================================
 
 ![](2016-11-01_005_gpu-trace_g3d_r960__.jpg)
-
+Ground plane does not move when camera moves.
 
 
 2016-11-01: Box and Sphere
 =============================================================
 
 ![](2016-11-01_004_gpu-trace_g3d_r960__.jpg)
+Created new distance function for box.
 
 
 
@@ -581,12 +560,14 @@ Temporarily Fixed by checking if t is greater than 0.
 
 ![](2016-11-01_003_gpu-trace_g3d_r960__.jpg)
 
+Checks which shape is closer, and returns the appropriate one's information.
 
 
 2016-11-01: Now gets material from surface hit.
 =============================================================
 
 ![](2016-11-01_002_gpu-trace_g3d_r960__.jpg)
+A surfel's material is set on impact.
 
 
 
@@ -595,19 +576,20 @@ Temporarily Fixed by checking if t is greater than 0.
 
 ![](2016-11-01_001_gpu-trace_g3d_r960__.jpg)
 
-
+Altered traceRay so both analytic plane and ray marched circle can appear at once.
 
 2016-11-01: Ground Plane
 =============================================================
 
 ![](2016-11-01_000_gpu-trace_g3d_r960__.jpg)
 
+Created analytic ground plane that appears normal
 
 
 2016-11-1: Prep
 =====================================================
 
-
+Performed SVN checkout and set up folders.
 
 
 <!-- Markdeep: -->
